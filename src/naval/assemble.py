@@ -120,4 +120,31 @@ def assemble_video(slides_with_pos, audio: Path, out: Path,
     log("  final encode (subtitles + fades) ...")
     _run(cmd, FINAL_TIMEOUT, "final encode")
     log(f"  wrote {out}")
+    ensure_max_size(out, log=log)
     return out
+
+
+MAX_DELIVERY_MB = 280   # 3 GitHub parts of 95MB
+
+
+def ensure_max_size(video: Path, max_mb: int = MAX_DELIVERY_MB, log=print):
+    """If the encode exceeds the 3-part delivery cap, re-encode the video
+    stream at the highest bitrate that still fits (audio untouched)."""
+    size_mb = video.stat().st_size / 1e6
+    if size_mb <= max_mb:
+        return video
+    total = audio_duration(video)
+    audio_kbps = 256
+    video_kbps = int((max_mb * 8000 * 0.97) / total) - audio_kbps
+    log(f"  {size_mb:.0f}MB exceeds {max_mb}MB cap -> "
+        f"re-encoding at {video_kbps}k")
+    tmp = video.with_suffix(".fit.mp4")
+    cmd = [FFMPEG, "-y", "-i", str(video),
+           "-c:v", "libx264", "-preset", "medium",
+           "-b:v", f"{video_kbps}k", "-maxrate", f"{int(video_kbps * 1.3)}k",
+           "-bufsize", f"{video_kbps * 2}k", "-pix_fmt", "yuv420p",
+           "-c:a", "copy", "-movflags", "+faststart", str(tmp)]
+    _run(cmd, FINAL_TIMEOUT, "size-cap re-encode")
+    tmp.replace(video)
+    log(f"  final size {video.stat().st_size / 1e6:.0f}MB")
+    return video
