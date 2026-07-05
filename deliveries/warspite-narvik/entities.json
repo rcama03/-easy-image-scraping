@@ -1,0 +1,281 @@
+[
+  {
+    "name": "HMS Warspite",
+    "kind": "ship",
+    "query": "HMS Warspite battleship 1940",
+    "caption": "HMS Warspite",
+    "first_pos": 0,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Ofotfjord",
+    "kind": "place",
+    "query": "Ofotfjord Narvik Norway fjord 1940",
+    "caption": "Ofotfjord",
+    "first_pos": 545,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Battles of Narvik",
+    "kind": "battle",
+    "query": "Second Battle of Narvik 1940 warships",
+    "caption": "Battles of Narvik",
+    "first_pos": 824,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Kiruna mine",
+    "kind": "place",
+    "query": "Kiruna iron ore mine Sweden railway historic",
+    "caption": "Kiruna mine",
+    "first_pos": 980,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "First Battle of Narvik",
+    "kind": "battle",
+    "query": "First Battle of Narvik April 1940",
+    "caption": "First Battle of Narvik",
+    "first_pos": 1477,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Hardy (H87)",
+    "kind": "ship",
+    "query": "HMS Hardy destroyer 1940",
+    "caption": "HMS Hardy (H87)",
+    "first_pos": 1660,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Hunter (H35)",
+    "kind": "ship",
+    "query": "HMS Hunter destroyer 1940",
+    "caption": "HMS Hunter (H35)",
+    "first_pos": 1680,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Hotspur (H01)",
+    "kind": "ship",
+    "query": "HMS Hotspur destroyer",
+    "caption": "HMS Hotspur (H01)",
+    "first_pos": 1701,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German destroyer Z2 Georg Thiele",
+    "kind": "ship",
+    "query": "German destroyer 1936 class Kriegsmarine",
+    "caption": "German destroyer Z2 Georg Thiele",
+    "first_pos": 2108,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Rombaksfjord",
+    "kind": "place",
+    "query": "Rombaksfjord Narvik Norway",
+    "caption": "Rombaksfjord",
+    "first_pos": 2419,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Battle of Jutland",
+    "kind": "battle",
+    "query": "Battle of Jutland 1916 battleships",
+    "caption": "Battle of Jutland",
+    "first_pos": 2991,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Warspite (2)",
+    "kind": "ship",
+    "query": "HMS Warspite 1937 after reconstruction",
+    "caption": "HMS Warspite",
+    "first_pos": 3686,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMNB Portsmouth",
+    "kind": "place",
+    "query": "Portsmouth dockyard battleship refit 1930s",
+    "caption": "HMNB Portsmouth",
+    "first_pos": 3794,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "QF 2-pounder naval gun",
+    "kind": "weapon",
+    "query": "pom-pom gun Royal Navy anti-aircraft",
+    "caption": "QF 2-pounder naval gun",
+    "first_pos": 4391,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Admiralty Fire Control Table",
+    "kind": "weapon",
+    "query": "battleship director control tower Royal Navy",
+    "caption": "Admiralty Fire Control Table",
+    "first_pos": 4728,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "BL 15-inch Mk I naval gun",
+    "kind": "weapon",
+    "query": "HMS Warspite 15 inch guns turrets",
+    "caption": "BL 15-inch Mk I naval gun",
+    "first_pos": 4982,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Fairey Swordfish",
+    "kind": "aircraft",
+    "query": "Fairey Swordfish floatplane Royal Navy",
+    "caption": "Fairey Swordfish",
+    "first_pos": 5554,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "William Whitworth",
+    "kind": "person",
+    "query": "Admiral William Whitworth Royal Navy portrait",
+    "caption": "William Whitworth",
+    "first_pos": 6331,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Cossack (F03)",
+    "kind": "ship",
+    "query": "British destroyers Narvik 1940",
+    "caption": "HMS Cossack (F03)",
+    "first_pos": 6832,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German submarine U-64 (1939)",
+    "kind": "ship",
+    "query": "German submarine U-64 type IXB U-boat",
+    "caption": "German submarine U-64 (1939)",
+    "first_pos": 7147,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German destroyer Erich Koellner",
+    "kind": "ship",
+    "query": "German destroyer Erich Koellner Narvik",
+    "caption": "German destroyer Erich Koellner",
+    "first_pos": 7645,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German destroyer Erich Giese",
+    "kind": "ship",
+    "query": "German destroyer Erich Giese Narvik 1940",
+    "caption": "German destroyer Erich Giese",
+    "first_pos": 8676,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German destroyer Wolfgang Zenker",
+    "kind": "ship",
+    "query": "German destroyer Wolfgang Zenker",
+    "caption": "German destroyer Wolfgang Zenker",
+    "first_pos": 9223,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Eskimo (F75)",
+    "kind": "ship",
+    "query": "HMS Eskimo bow blown off torpedo Narvik 1940",
+    "caption": "HMS Eskimo (F75)",
+    "first_pos": 9575,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "German destroyer Z2 Georg Thiele (2)",
+    "kind": "ship",
+    "query": "Georg Thiele wreck beached Rombaksfjord",
+    "caption": "German destroyer Z2 Georg Thiele",
+    "first_pos": 9892,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Narvik",
+    "kind": "place",
+    "query": "Narvik harbour destroyer wrecks 1940",
+    "caption": "Narvik",
+    "first_pos": 10773,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Dunkirk evacuation",
+    "kind": "battle",
+    "query": "Dunkirk evacuation 1940 beaches",
+    "caption": "Dunkirk evacuation",
+    "first_pos": 11227,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Battle of Cape Matapan",
+    "kind": "battle",
+    "query": "Battle of Cape Matapan 1941 Royal Navy",
+    "caption": "Battle of Cape Matapan",
+    "first_pos": 12494,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "Normandy landings",
+    "kind": "battle",
+    "query": "HMS Warspite bombarding Normandy 1944",
+    "caption": "Normandy landings",
+    "first_pos": 12674,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Warspite (3)",
+    "kind": "ship",
+    "query": "HMS Warspite aground Prussia Cove Cornwall 1947",
+    "caption": "HMS Warspite",
+    "first_pos": 12930,
+    "mentions": 1,
+    "aliases": []
+  },
+  {
+    "name": "HMS Warspite (4)",
+    "kind": "ship",
+    "query": "HMS Warspite battleship firing guns",
+    "caption": "HMS Warspite",
+    "first_pos": 13532,
+    "mentions": 1,
+    "aliases": []
+  }
+]

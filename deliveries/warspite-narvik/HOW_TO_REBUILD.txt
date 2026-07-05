@@ -1,0 +1,6 @@
+warspite-narvik.mp4 was split for GitHub's 100MB file limit.
+
+Download all 3 parts into one folder, then run:
+
+  Linux/Mac:  cat warspite-narvik.mp4.part* > warspite-narvik.mp4
+  Windows:    copy /b warspite-narvik.mp4.part00+warspite-narvik.mp4.part01+warspite-narvik.mp4.part02 warspite-narvik.mp4
