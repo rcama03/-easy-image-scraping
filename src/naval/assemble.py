@@ -1,8 +1,16 @@
-"""Assemble captioned slides + narration audio into a draft MP4.
+"""Assemble framed slides + narration audio into the final MP4.
 
-Uses the static ffmpeg binary shipped by imageio-ffmpeg, so no system
-ffmpeg install is required. Slides are spread evenly across the audio
-duration (or 6s each if no audio is given). Optional Ken Burns zoom.
+Rules (channel spec):
+  - slide changes follow the narration: each slide starts when its entity
+    is mentioned; if an entity had no usable image the previous slide
+    simply stays on screen (never a blank clip)
+  - video length == audio length exactly; both fade out together at the
+    end (no sudden voice-over cut, no trailing black)
+  - Reise-Insider style karaoke subtitles burned in (optional .ass file)
+  - high quality: CRF 16 x264, 256k AAC — no size squeezing
+
+Uses the static ffmpeg binary from imageio-ffmpeg (libass included).
+Every subprocess has a timeout so the pipeline can never hang.
 """
 import re
 import subprocess
@@ -11,11 +19,23 @@ from pathlib import Path
 import imageio_ffmpeg
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+CLIP_TIMEOUT = 600       # s per slide clip
+FINAL_TIMEOUT = 2400     # s for the final encode
+MIN_SLIDE = 2.0          # s minimum a slide stays on screen
+FADE = 2.5               # s fade-out at the very end
+FPS = 25
+
+
+def _run(cmd, timeout, what):
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed ({what}):\n{proc.stderr[-800:]}")
+    return proc
 
 
 def audio_duration(path: Path) -> float:
     proc = subprocess.run([FFMPEG, "-i", str(path)],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, timeout=60)
     m = re.search(r"Duration: (\d+):(\d+):(\d+\.?\d*)", proc.stderr)
     if not m:
         raise RuntimeError(f"Could not read duration of {path}")
@@ -23,48 +43,81 @@ def audio_duration(path: Path) -> float:
     return int(h) * 3600 + int(mnt) * 60 + float(s)
 
 
-def assemble_video(slides, audio: Path | None, out: Path,
-                   fps: int = 25, kenburns: bool = True, log=print):
-    """slides: ordered list of image paths."""
-    if not slides:
+def schedule_slides(slides_with_pos, total: float):
+    """slides_with_pos: [(path, narration_fraction 0..1), ...] in order.
+    Returns [(path, duration), ...] covering [0, total] with no gaps."""
+    starts = []
+    for i, (path, frac) in enumerate(slides_with_pos):
+        start = 0.0 if i == 0 else max(frac * total, starts[-1][1] + MIN_SLIDE)
+        starts.append((path, start))
+    # drop slides pushed past the end
+    starts = [(p, s) for p, s in starts if s < total - MIN_SLIDE or s == 0.0]
+    out = []
+    for i, (path, start) in enumerate(starts):
+        end = starts[i + 1][1] if i + 1 < len(starts) else total
+        out.append((path, end - start))
+    return out
+
+
+def _render_clip(slide: Path, duration: float, clip: Path, kenburns: bool):
+    frames = max(1, round(duration * FPS))
+    if kenburns:
+        vf = (f"scale=2880:1620,zoompan=z='1+0.09*on/{frames}':"
+              f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+              f"d={frames}:s=1920x1080:fps={FPS}")
+        cmd = [FFMPEG, "-y", "-loop", "1", "-i", str(slide),
+               "-vf", vf, "-frames:v", str(frames),
+               "-c:v", "libx264", "-preset", "veryfast", "-crf", "14",
+               "-pix_fmt", "yuv420p", str(clip)]
+    else:
+        cmd = [FFMPEG, "-y", "-loop", "1", "-t", f"{duration:.3f}",
+               "-i", str(slide), "-vf", "scale=1920:1080", "-r", str(FPS),
+               "-c:v", "libx264", "-preset", "veryfast", "-crf", "14",
+               "-pix_fmt", "yuv420p", str(clip)]
+    _run(cmd, CLIP_TIMEOUT, f"clip {slide.name}")
+
+
+def assemble_video(slides_with_pos, audio: Path, out: Path,
+                   subtitles: Path | None = None,
+                   kenburns: bool = True, log=print):
+    if not slides_with_pos:
         raise ValueError("No slides to assemble")
-    total = audio_duration(audio) if audio else len(slides) * 6.0
-    per_slide = total / len(slides)
-    log(f"  {len(slides)} slides x {per_slide:.1f}s = {total:.0f}s total")
+    total = audio_duration(audio)
+    timed = schedule_slides(slides_with_pos, total)
+    log(f"  {len(timed)} slides over {total:.0f}s (narration-timed)")
 
     tmp = out.parent / "_clips"
     tmp.mkdir(parents=True, exist_ok=True)
     clips = []
-    frames = max(1, int(per_slide * fps))
-    for i, slide in enumerate(slides):
+    for i, (slide, duration) in enumerate(timed):
         clip = tmp / f"clip_{i:03d}.mp4"
-        if kenburns:
-            # slow push-in; upscale first so zoompan doesn't jitter
-            vf = (f"scale=3840:2160,zoompan=z='1+0.10*on/{frames}':"
-                  f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-                  f"d={frames}:s=1920x1080:fps={fps}")
-            cmd = [FFMPEG, "-y", "-loop", "1", "-i", str(slide),
-                   "-vf", vf, "-frames:v", str(frames),
-                   "-c:v", "libx264", "-pix_fmt", "yuv420p", str(clip)]
-        else:
-            cmd = [FFMPEG, "-y", "-loop", "1", "-t", f"{per_slide:.3f}",
-                   "-i", str(slide), "-vf", "scale=1920:1080", "-r", str(fps),
-                   "-c:v", "libx264", "-pix_fmt", "yuv420p", str(clip)]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(f"ffmpeg failed on slide {slide}:\n{proc.stderr[-800:]}")
+        _render_clip(Path(slide), duration, clip, kenburns)
         clips.append(clip)
-        log(f"  clip {i + 1}/{len(slides)} done")
+        log(f"  clip {i + 1}/{len(timed)} ({duration:.1f}s) done")
 
     concat_file = tmp / "concat.txt"
     concat_file.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
-    cmd = [FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file)]
-    if audio:
-        cmd += ["-i", str(audio), "-map", "0:v", "-map", "1:a",
-                "-c:a", "aac", "-b:a", "192k", "-shortest"]
-    cmd += ["-c:v", "copy", str(out)]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg concat failed:\n{proc.stderr[-800:]}")
+
+    fade_start = max(0.0, total - FADE)
+    vf_parts = []
+    if subtitles:
+        # escape for the subtitles filter (colon + quote rules)
+        sub = str(Path(subtitles).resolve()).replace("\\", "/").replace(":", r"\:")
+        vf_parts.append(f"subtitles=filename='{sub}'")
+    vf_parts.append(f"fade=t=in:st=0:d=0.6,fade=t=out:st={fade_start:.2f}:d={FADE}")
+    cmd = [FFMPEG, "-y",
+           "-f", "concat", "-safe", "0", "-i", str(concat_file),
+           "-i", str(audio),
+           "-map", "0:v", "-map", "1:a",
+           "-vf", ",".join(vf_parts),
+           "-af", f"afade=t=out:st={fade_start:.2f}:d={FADE}",
+           "-t", f"{total:.3f}",
+           "-c:v", "libx264", "-preset", "medium", "-crf", "16",
+           "-pix_fmt", "yuv420p",
+           "-c:a", "aac", "-b:a", "256k",
+           "-movflags", "+faststart",
+           str(out)]
+    log("  final encode (subtitles + fades) ...")
+    _run(cmd, FINAL_TIMEOUT, "final encode")
     log(f"  wrote {out}")
     return out

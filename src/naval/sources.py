@@ -115,6 +115,20 @@ SOURCES = {
 }
 DEFAULT_ORDER = ["wikipedia", "wikimedia", "bing", "duckduckgo"]
 
+# Stock photo agencies watermark their previews — never use them.
+WATERMARK_DOMAINS = (
+    "alamy", "gettyimages", "shutterstock", "istockphoto", "dreamstime",
+    "123rf", "bigstockphoto", "depositphotos", "agefotostock", "stock.adobe",
+    "bridgemanimages", "granger", "mediastorehouse", "superstock",
+    "photos.com", "fineartamerica", "posterlounge", "meisterdrucke",
+    "artuk.org", "prints-online", "watermark",
+)
+
+
+def _watermarked(url: str) -> bool:
+    host = urllib.parse.urlparse(url).netloc.lower()
+    return any(d in host for d in WATERMARK_DOMAINS)
+
 
 def collect_urls(query: str, per_source: int = 6, order=None,
                  wiki_query: str | None = None):
@@ -130,6 +144,8 @@ def collect_urls(query: str, per_source: int = 6, order=None,
             continue
         q = wiki_query if wiki_query and name in ("wikipedia", "wikimedia") else query
         for url in fn(q, per_source):
+            if _watermarked(url):
+                continue
             key = urllib.parse.urlparse(url)._replace(query="").geturl()
             if key not in seen:
                 seen.add(key)
