@@ -6,9 +6,12 @@ conversion for the classic history-documentary look.
 """
 from pathlib import Path
 
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 FRAME_W, FRAME_H = 1920, 1080
+# channel look: "slightly lighter" (chosen by the user from previews)
+BRIGHTNESS = 1.12   # lift applied to the photo after autocontrast
+BG_DARK = 0.50      # blurred background brightness factor
 
 
 def _fit(img: Image.Image, w: int, h: int) -> Image.Image:
@@ -25,13 +28,17 @@ def _fill(img: Image.Image, w: int, h: int) -> Image.Image:
     return img.crop((left, top, left + w, top + h))
 
 
-def frame_image(src: Path, dst: Path, bw: bool = True) -> Path:
+def frame_image(src: Path, dst: Path, bw: bool = True,
+                brightness: float = BRIGHTNESS,
+                bg_dark: float = BG_DARK) -> Path:
     img = Image.open(src).convert("RGB")
     if bw:
         img = ImageOps.autocontrast(img.convert("L"), cutoff=1).convert("RGB")
+    if brightness != 1.0:
+        img = ImageEnhance.Brightness(img).enhance(brightness)
 
     bg = _fill(img, FRAME_W, FRAME_H).filter(ImageFilter.GaussianBlur(30))
-    bg = Image.eval(bg, lambda px: int(px * 0.40))
+    bg = Image.eval(bg, lambda px: int(px * bg_dark))
 
     fg = _fit(img, FRAME_W, FRAME_H)
     frame = bg

@@ -95,6 +95,64 @@ def build_ass(words, out_path: Path):
     return out_path
 
 
+def align_words(script_words, heard_words, log=print):
+    """Give the script's exact words the timing of the actual audio.
+
+    TTS timing exports are often made before the music mix and drift by
+    seconds; whisper hears the real audio but garbles names and numbers.
+    So: match the two word sequences, take timing from the audio for every
+    matched word, and interpolate the timing of unmatched script words
+    between the surrounding anchors.
+    """
+    import difflib
+    import re as _re
+
+    def norm(w):
+        return _re.sub(r"[^a-z0-9']", "", w.lower())
+
+    a = [norm(w) for w, _, _ in script_words]
+    b = [norm(w) for w, _, _ in heard_words]
+    sm = difflib.SequenceMatcher(a=a, b=b, autojunk=False)
+    timing = [None] * len(script_words)
+    matched = 0
+    for blk in sm.get_matching_blocks():
+        for k in range(blk.size):
+            timing[blk.a + k] = (heard_words[blk.b + k][1],
+                                 heard_words[blk.b + k][2])
+            matched += 1
+    log(f"  aligned {matched}/{len(script_words)} script words to the audio")
+    if matched < len(script_words) * 0.5:
+        log("  WARNING: poor alignment, falling back to audio transcription")
+        return heard_words
+
+    # interpolate unmatched runs between surrounding anchors, proportionally
+    # to the original (relative) word durations
+    i = 0
+    while i < len(timing):
+        if timing[i] is not None:
+            i += 1
+            continue
+        j = i
+        while j < len(timing) and timing[j] is None:
+            j += 1
+        left_end = timing[i - 1][1] if i > 0 else 0.0
+        right_start = (timing[j][0] if j < len(timing)
+                       else left_end + sum(e - s for _, s, e in script_words[i:j]))
+        span = max(right_start - left_end, 0.05 * (j - i))
+        weights = [max(script_words[k][2] - script_words[k][1], 0.05)
+                   for k in range(i, j)]
+        total = sum(weights)
+        t = left_end
+        for k, w in zip(range(i, j), weights):
+            d = span * w / total
+            timing[k] = (t, t + d)
+            t += d
+        i = j
+
+    return [(script_words[k][0], timing[k][0], timing[k][1])
+            for k in range(len(script_words))]
+
+
 def load_timings(path: Path):
     """Word timings supplied by the user's TTS tool:
     [{"word": ..., "start": ..., "end": ...}, ...]"""
@@ -108,8 +166,10 @@ def make_subtitles(audio: Path, out_path: Path,
                    model_size: str = "base.en",
                    timings: Path | None = None, log=print) -> Path | None:
     if timings:
-        words = load_timings(timings)
-        log(f"  using {len(words)} provided word timings from {timings}")
+        script_words = load_timings(timings)
+        log(f"  {len(script_words)} script words from {timings}")
+        heard = transcribe_words(audio, model_size, log=log)
+        words = align_words(script_words, heard, log=log) if heard else script_words
     else:
         words = transcribe_words(audio, model_size, log=log)
     if not words:
