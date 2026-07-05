@@ -31,7 +31,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
         entities_file: Path | None = None, keep: int = 4,
         engines: list[str] | None = None, make_video: bool = True,
         kenburns: bool = True, bw: bool = True, subs: bool = True,
-        whisper_model: str = "base.en"):
+        whisper_model: str = "base.en", timings: Path | None = None):
     out.mkdir(parents=True, exist_ok=True)
 
     script_text = script.read_text(encoding="utf-8", errors="replace") if script else ""
@@ -64,8 +64,9 @@ def run(script: Path | None, audio: Path | None, out: Path,
 
     ass = None
     if subs and audio:
-        print("Transcribing voice-over for karaoke subtitles...")
-        ass = make_subtitles(audio, out / "subtitles.ass", whisper_model)
+        print("Building karaoke subtitles...")
+        ass = make_subtitles(audio, out / "subtitles.ass", whisper_model,
+                             timings=timings)
 
     if make_video and slides and audio:
         print("Assembling final video...")
@@ -94,6 +95,9 @@ def main():
                    help="skip karaoke narration subtitles")
     p.add_argument("--whisper-model", default="base.en",
                    help="faster-whisper model (base.en/small.en/medium.en)")
+    p.add_argument("--timings", type=Path,
+                   help="word timings json [{word,start,end},...] from the "
+                        "TTS tool; skips whisper transcription")
     args = p.parse_args()
 
     if not args.script and not args.entities:
@@ -104,7 +108,7 @@ def main():
         engines=args.engines.split(",") if args.engines else None,
         make_video=not args.no_video, kenburns=not args.no_kenburns,
         bw=not args.color, subs=not args.no_subs,
-        whisper_model=args.whisper_model)
+        whisper_model=args.whisper_model, timings=args.timings)
 
 
 if __name__ == "__main__":

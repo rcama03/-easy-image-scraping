@@ -95,9 +95,23 @@ def build_ass(words, out_path: Path):
     return out_path
 
 
+def load_timings(path: Path):
+    """Word timings supplied by the user's TTS tool:
+    [{"word": ..., "start": ..., "end": ...}, ...]"""
+    import json
+    data = json.loads(Path(path).read_text())
+    return [(d["word"].strip(), float(d["start"]), float(d["end"]))
+            for d in data if d.get("word", "").strip()]
+
+
 def make_subtitles(audio: Path, out_path: Path,
-                   model_size: str = "base.en", log=print) -> Path | None:
-    words = transcribe_words(audio, model_size, log=log)
+                   model_size: str = "base.en",
+                   timings: Path | None = None, log=print) -> Path | None:
+    if timings:
+        words = load_timings(timings)
+        log(f"  using {len(words)} provided word timings from {timings}")
+    else:
+        words = transcribe_words(audio, model_size, log=log)
     if not words:
         log("  WARNING: no speech detected, skipping subtitles")
         return None
