@@ -43,12 +43,14 @@ def audio_duration(path: Path) -> float:
     return int(h) * 3600 + int(mnt) * 60 + float(s)
 
 
-def schedule_slides(slides_with_pos, total: float):
+def schedule_slides(slides_with_pos, total: float, offset: float = 0.0):
     """slides_with_pos: [(path, narration_fraction 0..1), ...] in order.
-    Returns [(path, duration), ...] covering [0, total] with no gaps."""
+    Returns [(path, duration), ...] covering [offset, total] with no gaps
+    (offset > 0 when intro animation clips occupy the start)."""
     starts = []
     for i, (path, frac) in enumerate(slides_with_pos):
-        start = 0.0 if i == 0 else max(frac * total, starts[-1][1] + MIN_SLIDE)
+        start = (offset if i == 0
+                 else max(frac * total, starts[-1][1] + MIN_SLIDE, offset))
         starts.append((path, start))
     # drop slides pushed past the end
     starts = [(p, s) for p, s in starts if s < total - MIN_SLIDE or s == 0.0]
@@ -77,18 +79,45 @@ def _render_clip(slide: Path, duration: float, clip: Path, kenburns: bool):
     _run(cmd, CLIP_TIMEOUT, f"clip {slide.name}")
 
 
+def _conform_intro(src: Path, dst: Path):
+    """Conform a user animation clip to 1920x1080@FPS, drop its audio
+    (the narration plays underneath). Returns the clip duration."""
+    vf = ("scale=1920:1080:force_original_aspect_ratio=decrease,"
+          "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,fps=" + str(FPS))
+    cmd = [FFMPEG, "-y", "-i", str(src), "-vf", vf, "-an",
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "14",
+           "-pix_fmt", "yuv420p", str(dst)]
+    _run(cmd, CLIP_TIMEOUT, f"intro {src.name}")
+    return audio_duration(dst)
+
+
 def assemble_video(slides_with_pos, audio: Path, out: Path,
                    subtitles: Path | None = None,
-                   kenburns: bool = True, log=print):
+                   kenburns: bool = True, intros=None, log=print):
     if not slides_with_pos:
         raise ValueError("No slides to assemble")
     total = audio_duration(audio)
-    timed = schedule_slides(slides_with_pos, total)
-    log(f"  {len(timed)} slides over {total:.0f}s (narration-timed)")
 
     tmp = out.parent / "_clips"
     tmp.mkdir(parents=True, exist_ok=True)
-    clips = []
+
+    # user animation clips play over the START of the narration; the video
+    # length stays locked to the audio length
+    intro_clips, intro_total = [], 0.0
+    for k, intro in enumerate(intros or []):
+        clip = tmp / f"intro_{k}.mp4"
+        d = _conform_intro(Path(intro), clip)
+        intro_clips.append(clip)
+        intro_total += d
+        log(f"  intro {k + 1}: {Path(intro).name} ({d:.1f}s)")
+    if intro_total > total * 0.5:
+        raise ValueError(f"Intro clips ({intro_total:.0f}s) cover more than "
+                         f"half the narration ({total:.0f}s) — refusing")
+
+    timed = schedule_slides(slides_with_pos, total, offset=intro_total)
+    log(f"  {len(timed)} slides over {total:.0f}s (narration-timed)")
+
+    clips = list(intro_clips)
     for i, (slide, duration) in enumerate(timed):
         clip = tmp / f"clip_{i:03d}.mp4"
         _render_clip(Path(slide), duration, clip, kenburns)

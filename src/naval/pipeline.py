@@ -31,7 +31,8 @@ def run(script: Path | None, audio: Path | None, out: Path,
         entities_file: Path | None = None, keep: int = 4,
         engines: list[str] | None = None, make_video: bool = True,
         kenburns: bool = True, bw: bool = True, subs: bool = True,
-        whisper_model: str = "base.en", timings: Path | None = None):
+        whisper_model: str = "base.en", timings: Path | None = None,
+        intros: list[Path] | None = None):
     out.mkdir(parents=True, exist_ok=True)
 
     script_text = script.read_text(encoding="utf-8", errors="replace") if script else ""
@@ -48,6 +49,12 @@ def run(script: Path | None, audio: Path | None, out: Path,
     text_len = max(len(script_text), 1)
     slides = []  # (framed path, narration fraction)
     for i, entity in enumerate(entities):
+        if entity.image:  # user-provided image (e.g. a map): no scraping
+            print(f"({i + 1}/{len(entities)}) user image: {entity.name}")
+            dst = out / "framed" / f"{i:03d}_{slug(entity.name)}.jpg"
+            frame_image(Path(entity.image), dst, bw=bw and not entity.color)
+            slides.append((dst, entity.first_pos / text_len))
+            continue
         print(f"({i + 1}/{len(entities)}) scraping: {entity.name}")
         images = download_entity_images(
             entity, out / "raw" / slug(entity.name), keep=keep, order=engines)
@@ -71,7 +78,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
     if make_video and slides and audio:
         print("Assembling final video...")
         assemble_video(slides, audio, out / "final.mp4",
-                       subtitles=ass, kenburns=kenburns)
+                       subtitles=ass, kenburns=kenburns, intros=intros)
     return slides
 
 
@@ -97,7 +104,11 @@ def main():
                    help="faster-whisper model (base.en/small.en/medium.en)")
     p.add_argument("--timings", type=Path,
                    help="word timings json [{word,start,end},...] from the "
-                        "TTS tool; skips whisper transcription")
+                        "TTS tool; used for exact word spellings, timing is "
+                        "aligned to the actual audio")
+    p.add_argument("--intro", type=str,
+                   help="comma list of animation clips to play over the "
+                        "start of the narration")
     args = p.parse_args()
 
     if not args.script and not args.entities:
@@ -108,7 +119,8 @@ def main():
         engines=args.engines.split(",") if args.engines else None,
         make_video=not args.no_video, kenburns=not args.no_kenburns,
         bw=not args.color, subs=not args.no_subs,
-        whisper_model=args.whisper_model, timings=args.timings)
+        whisper_model=args.whisper_model, timings=args.timings,
+        intros=[Path(p) for p in args.intro.split(",")] if args.intro else None)
 
 
 if __name__ == "__main__":

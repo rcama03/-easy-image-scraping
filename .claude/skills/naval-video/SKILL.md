@@ -28,6 +28,17 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
 - Slides change when their person/ship/battle is mentioned; if no image
   was found for an entity, the previous image stays on screen. Never a
   blank clip.
+- User-provided images (maps, geography, etc.): the user uploads them
+  with ANY filenames — you must Read each image yourself, identify what
+  it shows, and place it at the matching narration moment (entity entry
+  with `image` set to the file path). User images KEEP their original
+  colour (`color: true`) — only scraped photos are B&W. Show the user
+  your placement plan (image -> narration moment) for approval BEFORE
+  rendering.
+- User-provided animation clips: passed via `--intro a.mp4,b.mp4`, they
+  play back-to-back OVER the start of the narration (audio starts at 0,
+  clips are conformed to 1080p25, their own sound is dropped). Video
+  length stays locked to the audio length.
 - Video length == audio length, joint audio+video fade-out at the end.
   No sudden voiceover cut.
 - Maximum quality; only downsize if the file would exceed 3 GitHub parts

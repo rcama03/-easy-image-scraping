@@ -35,12 +35,14 @@ STOPWORDS = {
 @dataclass
 class Entity:
     name: str          # display name, e.g. "Admiral Horatio Nelson" or "HMS Victory"
-    kind: str          # "person" | "ship" | "battle"
+    kind: str          # "person" | "ship" | "battle" | "asset" ...
     query: str         # search engine query
     caption: str       # caption rendered under the image
     first_pos: int     # character offset of first mention (narration order)
     mentions: int = 1
     aliases: List[str] = field(default_factory=list)
+    image: str = ""    # user-provided image file: used instead of scraping
+    color: bool = False  # keep original colours (e.g. maps) instead of B&W
 
 
 def _clean_person(rank: str, name: str) -> str:
