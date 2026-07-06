@@ -74,13 +74,34 @@ def group_phrases(words):
 
 
 def build_ass(words, out_path: Path):
-    """One Dialogue event per word: full phrase shown, current word yellow."""
+    """One Dialogue event per word: full phrase shown, current word yellow.
+
+    Two captions must never be on screen at once (libass stacks them and
+    the line visibly jumps), so the last word of every phrase is clamped
+    to end no later than the next phrase starts — transcribed word ends
+    sometimes stretch seconds into a pause. Extra-long phrases get a
+    slightly smaller font so they never touch the frame edges.
+    """
+    phrases = group_phrases(words)
     lines = [ASS_HEADER]
-    for phrase in group_phrases(words):
+    for pi, phrase in enumerate(phrases):
+        next_phrase_start = (phrases[pi + 1][0][1]
+                             if pi + 1 < len(phrases) else None)
+        plain = " ".join(w for w, _, _ in phrase)
+        size_tag = ""
+        if len(plain) > 48:
+            size_tag = r"{\fs48}"
+        elif len(plain) > 42:
+            size_tag = r"{\fs52}"
         for j, (token, start, end) in enumerate(phrase):
-            # keep the phrase on screen until the next word starts
-            until = phrase[j + 1][1] if j + 1 < len(phrase) else end
-            text = " ".join(
+            if j + 1 < len(phrase):
+                # keep the phrase on screen until the next word starts
+                until = phrase[j + 1][1]
+            else:
+                until = min(end, start + 2.0)
+                if next_phrase_start is not None:
+                    until = min(until, next_phrase_start)
+            text = size_tag + " ".join(
                 (YELLOW + w.upper() + WHITE) if k == j else w.upper()
                 for k, (w, _, _) in enumerate(phrase)
             )
