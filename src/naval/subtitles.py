@@ -82,6 +82,17 @@ def build_ass(words, out_path: Path):
     sometimes stretch seconds into a pause. Extra-long phrases get a
     slightly smaller font so they never touch the frame edges.
     """
+    # transcribers occasionally emit out-of-order timestamps at segment
+    # boundaries; force starts to be non-decreasing so a later phrase can
+    # never begin before an earlier one
+    clean, prev = [], 0.0
+    for w, s, e in words:
+        s = max(s, prev)
+        e = max(e, s + 0.02)
+        prev = s
+        clean.append((w, s, e))
+    words = clean
+
     phrases = group_phrases(words)
     lines = [ASS_HEADER]
     for pi, phrase in enumerate(phrases):
