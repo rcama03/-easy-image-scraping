@@ -48,6 +48,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
 
     text_len = max(len(script_text), 1)
     slides = []  # (framed path, narration fraction)
+    used_digests = set()  # never show the same image on two slides
     for i, entity in enumerate(entities):
         if entity.image:  # user-provided image (e.g. a map): no scraping
             print(f"({i + 1}/{len(entities)}) user image: {entity.name}")
@@ -58,8 +59,12 @@ def run(script: Path | None, audio: Path | None, out: Path,
         print(f"({i + 1}/{len(entities)}) scraping: {entity.name}")
         images = download_entity_images(
             entity, out / "raw" / slug(entity.name), keep=keep, order=engines)
+        # global duplicate guard: file names are {source}_{digest}.jpg
+        images = [p for p in images
+                  if p.stem.rsplit("_", 1)[-1] not in used_digests]
         if not images:
             continue  # previous slide will simply stay on screen longer
+        used_digests.add(images[0].stem.rsplit("_", 1)[-1])
         dst = out / "framed" / f"{i:03d}_{slug(entity.name)}.jpg"
         frame_image(images[0], dst, bw=bw)
         for j, alt in enumerate(images[1:], start=1):

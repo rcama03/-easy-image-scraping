@@ -75,13 +75,19 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
        --out output/<episode-slug>
    ```
 
-4. While it renders, visually spot-check several framed slides (Read the
-   jpg) — especially people (portrait searches often return relatives or
-   group photos) and generic queries. A wrong image can be fixed
-   mid-render by overwriting `framed/NNN_*.jpg` with an alternate IF the
-   clip renderer hasn't reached that slide yet (check the log); otherwise
-   re-render just that portion. Also check the era is right (e.g. the
-   1940 battleship Warspite, not the 1827 sailing ship of the same name).
+4. MANDATORY full visual review of EVERY framed slide BEFORE clips
+   render (irrelevant images shipped in a delivered video was explicit
+   user feedback — never again). Run the pipeline with `--no-video`
+   first, then build labelled contact sheets (12 thumbs per sheet, PIL)
+   and Read them; re-Read full-size any doubtful slide. Check: right
+   subject, right ship/person (not a namesake, relative, piazza, or
+   anime art), right era. Fix by: alternates, a targeted
+   `wiki_lead(exact article title)` fetch, or DROP the slide (delete the
+   framed jpg — an accurate neighbour beats a wrong image). Duplicates
+   across slides are blocked automatically by the pipeline's
+   used-digest guard; still watch for near-identical shots and vary
+   them via alternates. Only then assemble (run assemble_video or
+   re-run with cached raw/).
 5. Verify the result: extract 2–3 frames from `final.mp4` at moments you
    can predict the spoken words (use the subtitles .ass), confirm the
    highlighted word matches what is being said, images look right, and
