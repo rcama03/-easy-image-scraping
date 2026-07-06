@@ -52,14 +52,19 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
 
 1. Install deps if needed: `pip install -r requirements.txt faster-whisper`.
    Convert .docx scripts to .txt first if necessary.
-2. Build a curated entity list — auto-extraction alone is too sparse for
-   long episodes. Target roughly one slide per 25–35s of audio (~30
-   slides for 15 min). Write a small generator (see the pattern in the
-   Warspite episode: anchor phrase in script → name/kind/query) that
-   locates each anchor's `first_pos` in the script and saves
-   `entities.json`. Include every ship, person, battle AND supporting
-   visuals (places, weapons, aircraft). For Wikipedia accuracy use exact
-   article names (e.g. "HMS Hardy (H87)", "German destroyer Erich Giese").
+2. Build an EXHAUSTIVE entity list — auto-extraction alone is too
+   sparse, and sparse coverage was explicit user feedback. Target one
+   slide per 12–15s of audio (~60 slides for 15 min). Read the whole
+   script and cover EVERY named item in these categories: ships,
+   submarines, people, places/geography, nations, navies/forces/units,
+   battles/events, incidents/accidents, weapons, aircraft, and key
+   institutions (dockyards, headquarters). Write a small generator (see
+   the ep2/Upholder pattern: anchor phrase in script → name/kind/query,
+   user infographics as `image`+`color` entries in the same list) that
+   locates each anchor's `first_pos` and saves `entities.json`. For
+   Wikipedia accuracy use exact article names (e.g. "HMS Hardy (H87)",
+   "Italian cruiser Armando Diaz"). Only things with no conceivable
+   image are skipped — the previous slide covers them.
 3. Run the pipeline (from the repo root, in background, with a Monitor):
 
    ```
