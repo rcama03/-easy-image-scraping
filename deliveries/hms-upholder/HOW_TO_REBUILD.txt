@@ -1,0 +1,6 @@
+hms-upholder.mp4 was split for GitHub's 100MB file limit.
+
+Download all 6 parts into one folder, then run:
+
+  Linux/Mac:  cat hms-upholder.mp4.part* > hms-upholder.mp4
+  Windows:    copy /b hms-upholder.mp4.part00+hms-upholder.mp4.part01+hms-upholder.mp4.part02+hms-upholder.mp4.part03+hms-upholder.mp4.part04+hms-upholder.mp4.part05 hms-upholder.mp4

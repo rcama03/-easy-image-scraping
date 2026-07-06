@@ -15,7 +15,6 @@ import shutil
 from pathlib import Path
 
 PART_SIZE = 95 * 1024 * 1024
-MAX_PARTS = 3   # channel rule: never more than 3 parts on GitHub
 
 
 def prepare(video: Path, dest_dir: Path):
@@ -26,12 +25,6 @@ def prepare(video: Path, dest_dir: Path):
         shutil.copy2(video, dest)
         print(f"{video.name}: {size / 1e6:.0f}MB, fits as a single file -> {dest}")
         return [dest]
-    if size > PART_SIZE * MAX_PARTS:
-        raise SystemExit(
-            f"{video.name} is {size / 1e6:.0f}MB — over the {MAX_PARTS}-part "
-            f"limit ({PART_SIZE * MAX_PARTS / 1e6:.0f}MB). Re-encode it first "
-            f"(src.naval.assemble.ensure_max_size) and rerun."
-        )
     parts = []
     with open(video, "rb") as f:
         idx = 0

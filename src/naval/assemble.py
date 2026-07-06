@@ -149,11 +149,12 @@ def assemble_video(slides_with_pos, audio: Path, out: Path,
     log("  final encode (subtitles + fades) ...")
     _run(cmd, FINAL_TIMEOUT, "final encode")
     log(f"  wrote {out}")
-    ensure_max_size(out, log=log)
+    # per user rule: never re-encode to shrink — deliver full quality,
+    # split into as many GitHub parts as needed
     return out
 
 
-MAX_DELIVERY_MB = 280   # 3 GitHub parts of 95MB
+MAX_DELIVERY_MB = 280   # only used if ensure_max_size is called explicitly
 
 
 def ensure_max_size(video: Path, max_mb: int = MAX_DELIVERY_MB, log=print):

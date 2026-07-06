@@ -41,9 +41,9 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   length stays locked to the audio length.
 - Video length == audio length, joint audio+video fade-out at the end.
   No sudden voiceover cut.
-- Maximum quality; only downsize if the file would exceed 3 GitHub parts
-  (285MB) — `ensure_max_size` handles this automatically. Never more
-  than 3 parts.
+- Maximum quality, NEVER re-encode to shrink (user rule). Deliver the
+  full-quality master split into as many 95MB GitHub parts as needed —
+  the user combines them locally.
 - Typical episodes are 13–22 minutes. The whole job must finish within
   ~1 hour; never poll or wait without a timeout. Run the pipeline with
   Bash run_in_background + a Monitor on the log for milestones/errors.
