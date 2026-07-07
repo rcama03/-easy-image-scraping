@@ -61,6 +61,39 @@ def schedule_slides(slides_with_pos, total: float, offset: float = 0.0):
     return out
 
 
+def space_user_slides(slides):
+    """Break up runs of consecutive user images (infographics) so no two
+    sit back-to-back — channel rule: there must always be a scraped image
+    between them (the infographic is nudged just before/after its beat).
+
+    slides: [(path, frac, is_user), ...] in narration order.
+    Returns [(path, frac), ...] — the SAME time-slots (sorted fracs) are
+    kept, so pacing and total length are unchanged; only which image
+    occupies each slot is locally reshuffled, so every image still lands
+    within a slot or two of its narration moment.
+    """
+    n = len(slides)
+    slots = sorted(f for _, f, _ in slides)
+    used = [False] * n
+    order = []
+    for j in range(n):
+        if used[j]:
+            continue
+        path, frac, is_user = slides[j]
+        if is_user and order and order[-1][2]:
+            # last placed was also a user image → insert a scraped separator
+            k = next((k for k in range(j + 1, n)
+                      if not used[k] and not slides[k][2]), None)
+            if k is None:  # no scraped left ahead: take any unused
+                k = next((k for k in range(j + 1, n) if not used[k]), None)
+            if k is not None:
+                order.append(slides[k])
+                used[k] = True
+        order.append(slides[j])
+        used[j] = True
+    return [(p, slots[i]) for i, (p, _, _) in enumerate(order)]
+
+
 def _render_clip(slide: Path, duration: float, clip: Path, kenburns: bool):
     frames = max(1, round(duration * FPS))
     if kenburns:

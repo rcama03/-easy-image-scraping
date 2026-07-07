@@ -35,6 +35,14 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   colour (`color: true`) — only scraped photos are B&W. Show the user
   your placement plan (image -> narration moment) for approval BEFORE
   rendering.
+- Infographics/user images must NEVER appear two-in-a-row — a scraped
+  image always sits between them (the pipeline's `space_user_slides`
+  enforces this automatically; an infographic may shift just before/
+  after its beat to make room). Do not defeat it.
+- The pipeline always writes numbered contact sheets to
+  `<out>/contact_sheets/review_*.jpg` (via `write_contact_sheets`).
+  ALWAYS send these to the user with SendUserFile for review before the
+  final render, so they can flag irrelevant/repeated images by number.
 - User-provided animation clips: passed via `--intro a.mp4,b.mp4`, they
   play back-to-back OVER the start of the narration (audio starts at 0,
   clips are conformed to 1080p25, their own sound is dropped). Video

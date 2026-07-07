@@ -16,7 +16,8 @@ import argparse
 import re
 from pathlib import Path
 
-from src.naval.assemble import assemble_video
+from src.naval.assemble import assemble_video, space_user_slides
+from src.naval.contact import write_contact_sheets
 from src.naval.download import download_entity_images
 from src.naval.entities import extract_entities, load_entities, save_entities
 from src.naval.frames import frame_image
@@ -47,14 +48,14 @@ def run(script: Path | None, audio: Path | None, out: Path,
     save_entities(entities, out / "entities.json")
 
     text_len = max(len(script_text), 1)
-    slides = []  # (framed path, narration fraction)
+    slides = []  # (framed path, narration fraction, is_user)
     used_digests = set()  # never show the same image on two slides
     for i, entity in enumerate(entities):
         if entity.image:  # user-provided image (e.g. a map): no scraping
             print(f"({i + 1}/{len(entities)}) user image: {entity.name}")
             dst = out / "framed" / f"{i:03d}_{slug(entity.name)}.jpg"
             frame_image(Path(entity.image), dst, bw=bw and not entity.color)
-            slides.append((dst, entity.first_pos / text_len))
+            slides.append((dst, entity.first_pos / text_len, True))
             continue
         print(f"({i + 1}/{len(entities)}) scraping: {entity.name}")
         images = download_entity_images(
@@ -70,9 +71,14 @@ def run(script: Path | None, audio: Path | None, out: Path,
         for j, alt in enumerate(images[1:], start=1):
             frame_image(alt, out / "framed" / "alternates" /
                         f"{i:03d}_{slug(entity.name)}_alt{j}.jpg", bw=bw)
-        slides.append((dst, entity.first_pos / text_len))
+        slides.append((dst, entity.first_pos / text_len, False))
 
     print(f"\n{len(slides)} framed slides in {out / 'framed'}")
+
+    # space infographics apart and emit review contact sheets (always)
+    timed_slides = space_user_slides(slides)
+    write_contact_sheets([p for p, _ in timed_slides], out / "contact_sheets")
+    print(f"contact sheets in {out / 'contact_sheets'} — review before render")
 
     ass = None
     if subs and audio:
@@ -80,11 +86,11 @@ def run(script: Path | None, audio: Path | None, out: Path,
         ass = make_subtitles(audio, out / "subtitles.ass", whisper_model,
                              timings=timings)
 
-    if make_video and slides and audio:
+    if make_video and timed_slides and audio:
         print("Assembling final video...")
-        assemble_video(slides, audio, out / "final.mp4",
+        assemble_video(timed_slides, audio, out / "final.mp4",
                        subtitles=ass, kenburns=kenburns, intros=intros)
-    return slides
+    return timed_slides
 
 
 def main():
