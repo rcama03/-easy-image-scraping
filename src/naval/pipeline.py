@@ -33,7 +33,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
         engines: list[str] | None = None, make_video: bool = True,
         kenburns: bool = True, bw: bool = True, subs: bool = True,
         whisper_model: str = "base.en", timings: Path | None = None,
-        intros: list[Path] | None = None):
+        intros: list[Path] | None = None, info_gap: int = 1):
     out.mkdir(parents=True, exist_ok=True)
 
     script_text = script.read_text(encoding="utf-8", errors="replace") if script else ""
@@ -76,7 +76,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
     print(f"\n{len(slides)} framed slides in {out / 'framed'}")
 
     # space infographics apart and emit review contact sheets (always)
-    timed_slides = space_user_slides(slides)
+    timed_slides = space_user_slides(slides, min_gap=info_gap)
     write_contact_sheets([p for p, _ in timed_slides], out / "contact_sheets")
     print(f"contact sheets in {out / 'contact_sheets'} — review before render")
 
@@ -120,6 +120,8 @@ def main():
     p.add_argument("--intro", type=str,
                    help="comma list of animation clips to play over the "
                         "start of the narration")
+    p.add_argument("--info-gap", type=int, default=1,
+                   help="minimum scraped images between two infographics")
     args = p.parse_args()
 
     if not args.script and not args.entities:
@@ -131,7 +133,8 @@ def main():
         make_video=not args.no_video, kenburns=not args.no_kenburns,
         bw=not args.color, subs=not args.no_subs,
         whisper_model=args.whisper_model, timings=args.timings,
-        intros=[Path(p) for p in args.intro.split(",")] if args.intro else None)
+        intros=[Path(p) for p in args.intro.split(",")] if args.intro else None,
+        info_gap=args.info_gap)
 
 
 if __name__ == "__main__":

@@ -43,54 +43,78 @@ def audio_duration(path: Path) -> float:
     return int(h) * 3600 + int(mnt) * 60 + float(s)
 
 
+INFOGRAPHIC_MIN_DUR = 10.0   # user images carry lots of info: hold >= 10s
+
+
+def _min_dur(path) -> float:
+    """Minimum on-screen duration for a slide. Infographics/user images
+    (framed as *infographic*.jpg) are held longer since they are dense."""
+    return INFOGRAPHIC_MIN_DUR if "infographic" in Path(path).stem else MIN_SLIDE
+
+
 def schedule_slides(slides_with_pos, total: float, offset: float = 0.0):
     """slides_with_pos: [(path, narration_fraction 0..1), ...] in order.
     Returns [(path, duration), ...] covering [offset, total] with no gaps
-    (offset > 0 when intro animation clips occupy the start)."""
+    (offset > 0 when intro animation clips occupy the start).
+
+    Each slide is guaranteed at least `_min_dur(path)` on screen — so an
+    infographic always holds >= INFOGRAPHIC_MIN_DUR even if the next beat
+    lands sooner."""
     starts = []
     for i, (path, frac) in enumerate(slides_with_pos):
+        prev_min = _min_dur(starts[-1][0]) if starts else MIN_SLIDE
         start = (offset if i == 0
-                 else max(frac * total, starts[-1][1] + MIN_SLIDE, offset))
+                 else max(frac * total, starts[-1][1] + prev_min, offset))
         starts.append((path, start))
-    # drop slides pushed past the end
-    starts = [(p, s) for p, s in starts if s < total - MIN_SLIDE or s == 0.0]
+    # drop slides whose own minimum can't fit before the end
+    kept = []
+    for p, s in starts:
+        if s == 0.0 or s < total - _min_dur(p):
+            kept.append((p, s))
     out = []
-    for i, (path, start) in enumerate(starts):
-        end = starts[i + 1][1] if i + 1 < len(starts) else total
+    for i, (path, start) in enumerate(kept):
+        end = kept[i + 1][1] if i + 1 < len(kept) else total
         out.append((path, end - start))
     return out
 
 
-def space_user_slides(slides):
-    """Break up runs of consecutive user images (infographics) so no two
-    sit back-to-back — channel rule: there must always be a scraped image
-    between them (the infographic is nudged just before/after its beat).
+def space_user_slides(slides, min_gap: int = 1):
+    """Keep at least `min_gap` scraped images between any two user images
+    (infographics) — they must never sit back-to-back, and dense storyboards
+    read better with a few photos between each.
 
     slides: [(path, frac, is_user), ...] in narration order.
     Returns [(path, frac), ...] — the SAME time-slots (sorted fracs) are
     kept, so pacing and total length are unchanged; only which image
     occupies each slot is locally reshuffled, so every image still lands
-    within a slot or two of its narration moment.
+    close to its narration moment.
     """
     n = len(slides)
     slots = sorted(f for _, f, _ in slides)
     used = [False] * n
     order = []
+    since_user = min_gap  # allow the first user image immediately
     for j in range(n):
         if used[j]:
             continue
         path, frac, is_user = slides[j]
-        if is_user and order and order[-1][2]:
-            # last placed was also a user image → insert a scraped separator
-            k = next((k for k in range(j + 1, n)
-                      if not used[k] and not slides[k][2]), None)
-            if k is None:  # no scraped left ahead: take any unused
-                k = next((k for k in range(j + 1, n) if not used[k]), None)
-            if k is not None:
+        if is_user:
+            # pull scraped separators from ahead until the gap is satisfied
+            while since_user < min_gap:
+                k = next((k for k in range(j + 1, n)
+                          if not used[k] and not slides[k][2]), None)
+                if k is None:
+                    break
                 order.append(slides[k])
                 used[k] = True
-        order.append(slides[j])
-        used[j] = True
+                since_user += 1
+            order.append(slides[j])
+            used[j] = True
+            since_user = 0
+        else:
+            order.append(slides[j])
+            used[j] = True
+            since_user += 1
     return [(p, slots[i]) for i, (p, _, _) in enumerate(order)]
 
 
