@@ -1,0 +1,6 @@
+narvik-expendable.mp4 was split for GitHub's 100MB file limit.
+
+Download all 7 parts into one folder, then run:
+
+  Linux/Mac:  cat narvik-expendable.mp4.part* > narvik-expendable.mp4
+  Windows:    copy /b narvik-expendable.mp4.part00+narvik-expendable.mp4.part01+narvik-expendable.mp4.part02+narvik-expendable.mp4.part03+narvik-expendable.mp4.part04+narvik-expendable.mp4.part05+narvik-expendable.mp4.part06 narvik-expendable.mp4
