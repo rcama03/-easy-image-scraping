@@ -1,0 +1,6 @@
+cape-spada.mp4 was split for GitHub's 100MB file limit.
+
+Download all 6 parts into one folder, then run:
+
+  Linux/Mac:  cat cape-spada.mp4.part* > cape-spada.mp4
+  Windows:    copy /b cape-spada.mp4.part00+cape-spada.mp4.part01+cape-spada.mp4.part02+cape-spada.mp4.part03+cape-spada.mp4.part04+cape-spada.mp4.part05 cape-spada.mp4
