@@ -136,6 +136,22 @@ def _render_clip(slide: Path, duration: float, clip: Path, kenburns: bool):
     _run(cmd, CLIP_TIMEOUT, f"clip {slide.name}")
 
 
+def _render_footage(src: Path, duration: float, clip: Path):
+    """Fit a pre-conformed footage clip (public-domain B&W archival b-roll) to
+    a slide's narration slot: loop if shorter than `duration`, trim if longer.
+    Footage plays in place of a Ken Burns still at that beat."""
+    cmd = [FFMPEG, "-y", "-stream_loop", "-1", "-i", str(src),
+           "-t", f"{duration:.3f}", "-an",
+           "-vf", ("scale=1920:1080:force_original_aspect_ratio=decrease,"
+                   "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,fps=" + str(FPS)),
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "14",
+           "-pix_fmt", "yuv420p", str(clip)]
+    _run(cmd, CLIP_TIMEOUT, f"footage {src.name}")
+
+
+VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
+
+
 def _conform_intro(src: Path, dst: Path):
     """Conform a user animation clip to 1920x1080@FPS, drop its audio
     (the narration plays underneath). Returns the clip duration."""
@@ -177,7 +193,10 @@ def assemble_video(slides_with_pos, audio: Path, out: Path,
     clips = list(intro_clips)
     for i, (slide, duration) in enumerate(timed):
         clip = tmp / f"clip_{i:03d}.mp4"
-        _render_clip(Path(slide), duration, clip, kenburns)
+        if Path(slide).suffix.lower() in VIDEO_EXTS:
+            _render_footage(Path(slide), duration, clip)
+        else:
+            _render_clip(Path(slide), duration, clip, kenburns)
         clips.append(clip)
         log(f"  clip {i + 1}/{len(timed)} ({duration:.1f}s) done")
 
