@@ -21,7 +21,9 @@ import imageio_ffmpeg
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 CLIP_TIMEOUT = 600       # s per slide clip
 FINAL_TIMEOUT = 2400     # s for the final encode
-MIN_SLIDE = 2.0          # s minimum a slide stays on screen
+MIN_SLIDE = 8.0          # s minimum a slide stays on screen — this is a slow
+                         # documentary channel: viewers want time to read and
+                         # absorb, never a fast cut. Every still holds >= 8s.
 FADE = 2.5               # s fade-out at the very end
 FPS = 25
 
