@@ -12,6 +12,7 @@ Rules (channel spec):
 Uses the static ffmpeg binary from imageio-ffmpeg (libass included).
 Every subprocess has a timeout so the pipeline can never hang.
 """
+import math
 import re
 import subprocess
 from pathlib import Path
@@ -153,6 +154,33 @@ def _render_footage(src: Path, duration: float, clip: Path):
 
 VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
 
+MAX_HOLD = 12.0   # past this, quietly refresh with the entity's alternate
+                  # scraped image so no single still ever drags on screen
+
+
+def _alternates(slide: Path):
+    """The entity's other scraped images, saved by the pipeline next to the
+    main slide as framed/alternates/<stem>_alt*.jpg."""
+    d = slide.parent / "alternates"
+    if not d.is_dir():
+        return []
+    return sorted(d.glob(f"{slide.stem}_alt*.jpg"))
+
+
+def _hold_segments(imgs, duration: float):
+    """Split a long hold across an entity's images (main + alternates) so no
+    single still sits longer than MAX_HOLD — a gentle refresh, not a cut —
+    while keeping every segment >= MIN_SLIDE. Falls back to one hold when the
+    entity has no alternate image or the hold is already short enough.
+    Returns [(image_path, seg_dur), ...] summing exactly to `duration`."""
+    if len(imgs) <= 1 or duration <= MAX_HOLD:
+        return [(imgs[0], duration)]
+    k = math.ceil(duration / MAX_HOLD)
+    while k > 1 and duration / k < MIN_SLIDE:
+        k -= 1   # don't create a segment shorter than the slow-watch floor
+    seg = duration / k
+    return [(imgs[i % len(imgs)], seg) for i in range(k)]
+
 
 def _conform_intro(src: Path, dst: Path):
     """Conform a user animation clip to 1920x1080@FPS, drop its audio
@@ -194,12 +222,17 @@ def assemble_video(slides_with_pos, audio: Path, out: Path,
 
     clips = list(intro_clips)
     for i, (slide, duration) in enumerate(timed):
-        clip = tmp / f"clip_{i:03d}.mp4"
-        if Path(slide).suffix.lower() in VIDEO_EXTS:
-            _render_footage(Path(slide), duration, clip)
+        sp = Path(slide)
+        if sp.suffix.lower() in VIDEO_EXTS:
+            clip = tmp / f"clip_{i:03d}.mp4"
+            _render_footage(sp, duration, clip)
+            clips.append(clip)
         else:
-            _render_clip(Path(slide), duration, clip, kenburns)
-        clips.append(clip)
+            segments = _hold_segments([sp] + _alternates(sp), duration)
+            for si, (img, seg) in enumerate(segments):
+                clip = tmp / f"clip_{i:03d}_{si:02d}.mp4"
+                _render_clip(img, seg, clip, kenburns)
+                clips.append(clip)
         log(f"  clip {i + 1}/{len(timed)} ({duration:.1f}s) done")
 
     concat_file = tmp / "concat.txt"
