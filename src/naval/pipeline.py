@@ -13,19 +13,43 @@ Outputs under --out:
     final.mp4              the finished video
 """
 import argparse
+import json
 import re
 from pathlib import Path
 
 from src.naval.assemble import assemble_video, space_user_slides
+from src.naval.attribution import commons_credit, write_credits
 from src.naval.contact import write_contact_sheets
 from src.naval.download import download_entity_images
 from src.naval.entities import extract_entities, load_entities, save_entities
 from src.naval.frames import frame_image
+from src.naval.sources import commons_title_from_url
 from src.naval.subtitles import make_subtitles
 
 
 def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
+
+
+def _credit_for(raw_dir: Path, filename: str, entity_name: str):
+    """Resolve the licence/author of a used image from its saved source URL
+    (raw/<slug>/_provenance.json maps filename -> URL). Only Wikimedia Commons
+    URLs carry machine-readable licence metadata; other sources are recorded
+    as-is so the channel can verify them by hand before publishing."""
+    prov_file = raw_dir / "_provenance.json"
+    if not prov_file.exists():
+        return None
+    url = json.loads(prov_file.read_text()).get(filename)
+    if not url:
+        return None
+    title = commons_title_from_url(url)
+    if title:
+        cred = commons_credit(title)
+        if cred:
+            return cred
+    # non-Commons source: keep the raw URL so it can be checked manually
+    return {"title": entity_name, "author": "", "licence": "review",
+            "licence_url": "", "source_url": url}
 
 
 def run(script: Path | None, audio: Path | None, out: Path,
@@ -49,6 +73,7 @@ def run(script: Path | None, audio: Path | None, out: Path,
 
     text_len = max(len(script_text), 1)
     slides = []  # (framed path, narration fraction, is_user)
+    credits = []  # licence/author of every scraped image actually used
     used_digests = set()  # never show the same image on two slides
     for i, entity in enumerate(entities):
         if entity.image:  # user-provided image (e.g. a map): no scraping
@@ -66,6 +91,10 @@ def run(script: Path | None, audio: Path | None, out: Path,
         if not images:
             continue  # previous slide will simply stay on screen longer
         used_digests.add(images[0].stem.rsplit("_", 1)[-1])
+        cred = _credit_for(out / "raw" / slug(entity.name),
+                           images[0].name, entity.name)
+        if cred:
+            credits.append(cred)
         dst = out / "framed" / f"{i:03d}_{slug(entity.name)}.jpg"
         frame_image(images[0], dst, bw=bw)
         for j, alt in enumerate(images[1:], start=1):
@@ -74,6 +103,11 @@ def run(script: Path | None, audio: Path | None, out: Path,
         slides.append((dst, entity.first_pos / text_len, False))
 
     print(f"\n{len(slides)} framed slides in {out / 'framed'}")
+
+    # credits manifest for the video description (nothing is burned on screen)
+    if credits:
+        write_credits(credits, out / "credits.md")
+        print(f"credits for {len(credits)} images -> {out / 'credits.md'}")
 
     # space infographics apart and emit review contact sheets (always)
     timed_slides = space_user_slides(slides, min_gap=info_gap)

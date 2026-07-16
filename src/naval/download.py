@@ -1,6 +1,7 @@
 """Download candidate images for an entity, filter and de-duplicate."""
 import hashlib
 import io
+import json
 from pathlib import Path
 
 import requests
@@ -17,7 +18,7 @@ def download_entity_images(entity, out_dir: Path, keep: int = 4,
     """Fetch images for one entity. Returns list of saved file paths,
     best (largest, source-preferred) first."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    saved, hashes = [], set()
+    saved, hashes, prov = [], set(), {}
     for source, url in collect_urls(entity.query, per_source, order,
                                     wiki_query=entity.name):
         if len(saved) >= keep:
@@ -36,9 +37,12 @@ def download_entity_images(entity, out_dir: Path, keep: int = 4,
             img.convert("RGB").save(path, "JPEG", quality=92)
             hashes.add(digest)
             saved.append(path)
+            prov[path.name] = url  # remember where each image came from
             log(f"    [{source}] {img.width}x{img.height} -> {path.name}")
         except Exception:
             continue
+    # sidecar mapping filename -> source URL, for licence/attribution lookup
+    (out_dir / "_provenance.json").write_text(json.dumps(prov, indent=2))
     if not saved:
         log(f"    WARNING: no usable image found for '{entity.name}'")
     return saved

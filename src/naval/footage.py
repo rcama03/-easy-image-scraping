@@ -13,10 +13,14 @@ import subprocess
 from pathlib import Path
 
 import imageio_ffmpeg
+import requests
+
+from src.naval.sources import HEADERS
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 TIMEOUT = 600
 FPS = 25
+VIDEO_MIMES = ("video/webm", "video/mp4", "video/ogg", "application/ogg")
 
 
 def _run(cmd, what):
@@ -29,6 +33,81 @@ def ia_url(identifier: str, filename: str) -> str:
     """Direct download URL for a file inside an Internet Archive item."""
     from urllib.parse import quote
     return f"https://archive.org/download/{identifier}/{quote(filename)}"
+
+
+def commons_videos(query: str, max_results: int = 6):
+    """Search Wikimedia Commons for free (PD/CC) video files matching `query`.
+    Commons federates archival film from many national archives, all under
+    free licences. Returns [(url, file_title), ...]; file_title feeds
+    attribution.commons_credit for the description credits."""
+    try:
+        r = requests.get("https://commons.wikimedia.org/w/api.php", params={
+            "action": "query", "format": "json",
+            "generator": "search", "gsrsearch": f"{query} filetype:video",
+            "gsrnamespace": 6, "gsrlimit": max_results * 2,
+            "prop": "imageinfo", "iiprop": "url|mime|size",
+        }, headers=HEADERS, timeout=30)
+        pages = r.json().get("query", {}).get("pages", {})
+        out = []
+        for p in sorted(pages.values(), key=lambda x: x.get("index", 99)):
+            ii = (p.get("imageinfo") or [{}])[0]
+            if ii.get("mime") in VIDEO_MIMES and ii.get("url"):
+                out.append((ii["url"], p.get("title", "")))
+        return out[:max_results]
+    except Exception:
+        return []
+
+
+def ia_footage(query: str, max_results: int = 6, watermark_terms=("periscope",)):
+    """Search Internet Archive movingimage for public-domain / CC footage.
+    Skips items whose uploader is known to burn watermarks. Returns
+    [(identifier, title), ...] — resolve a downloadable file via the item's
+    metadata API before handing the URL to make_clip."""
+    try:
+        r = requests.get("https://archive.org/advancedsearch.php", params={
+            "q": (f'({query}) AND mediatype:movies AND '
+                  '(licenseurl:*creativecommons* OR '
+                  'rights:*public* OR collection:(FedFlix OR usgovfilms OR '
+                  'nara OR prelinger))'),
+            "fl[]": "identifier,title,uploader",
+            "rows": max_results * 2, "output": "json",
+        }, headers=HEADERS, timeout=30)
+        docs = r.json().get("response", {}).get("docs", [])
+        out = []
+        for d in docs:
+            up = (d.get("uploader") or "").lower()
+            if any(w in up for w in watermark_terms):
+                continue  # reseller watermark — unsafe for monetisation
+            out.append((d["identifier"], d.get("title", "")))
+        return out[:max_results]
+    except Exception:
+        return []
+
+
+def ia_playable_file(identifier: str):
+    """Pick a downloadable video file from an IA item's metadata (the direct
+    /download/ URL 500s without the real server+dir). Returns a full URL or
+    None."""
+    try:
+        r = requests.get(f"https://archive.org/metadata/{identifier}",
+                         headers=HEADERS, timeout=30)
+        meta = r.json()
+        server = meta.get("server")
+        d = meta.get("dir")
+        best = None
+        for f in meta.get("files", []):
+            name = f.get("name", "")
+            if name.lower().endswith((".mp4", ".mpeg", ".mpg", ".mov",
+                                      ".m4v", ".ogv", ".webm")):
+                size = int(f.get("size", 0) or 0)
+                if best is None or size > best[0]:
+                    best = (size, name)
+        if not (server and d and best):
+            return None
+        from urllib.parse import quote
+        return f"https://{server}{d}/{quote(best[1])}"
+    except Exception:
+        return None
 
 
 def probe_frames(src: str, seconds, out_dir: Path):

@@ -130,6 +130,17 @@ def _watermarked(url: str) -> bool:
     return any(d in host for d in WATERMARK_DOMAINS)
 
 
+def commons_title_from_url(url: str) -> str | None:
+    """Recover the Commons file title from an upload.wikimedia.org URL so its
+    licence + author can be looked up for attribution. Thumbnails embed the
+    original file name after '/thumb/'."""
+    m = re.search(r"/(?:commons|wikipedia/[a-z-]+)/(?:thumb/)?[0-9a-f]/[0-9a-f]{2}/([^/]+)", url)
+    if not m:
+        return None
+    name = urllib.parse.unquote(m.group(1))
+    return "File:" + name
+
+
 def collect_urls(query: str, per_source: int = 6, order=None,
                  wiki_query: str | None = None):
     """Query every source in order, return de-duplicated URLs (source-tagged).
