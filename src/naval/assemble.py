@@ -47,6 +47,16 @@ def audio_duration(path: Path) -> float:
 
 
 INFOGRAPHIC_MIN_DUR = 10.0   # user images carry lots of info: hold >= 10s
+VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
+
+
+def _is_video(path) -> bool:
+    return Path(path).suffix.lower() in VIDEO_EXTS
+
+
+def clip_length(path) -> float:
+    """Natural duration of a footage clip (read from the file itself)."""
+    return audio_duration(Path(path))
 
 
 def _min_dur(path) -> float:
@@ -55,25 +65,39 @@ def _min_dur(path) -> float:
     return INFOGRAPHIC_MIN_DUR if "infographic" in Path(path).stem else MIN_SLIDE
 
 
+def _slot_dur(path) -> float:
+    """The length a slide occupies while laying out the timeline. Footage is
+    RIGID — it plays at its own natural length (channel rule: never loop or
+    trim archival footage to fit the still pacing). A still gets the slow-watch
+    minimum and then stretches to the next narration beat."""
+    return clip_length(path) if _is_video(path) else _min_dur(path)
+
+
 def schedule_slides(slides_with_pos, total: float, offset: float = 0.0):
     """slides_with_pos: [(path, narration_fraction 0..1), ...] in order.
     Returns [(path, duration), ...] covering [offset, total] with no gaps
     (offset > 0 when intro animation clips occupy the start).
 
-    Each slide is guaranteed at least `_min_dur(path)` on screen — so an
-    infographic always holds >= INFOGRAPHIC_MIN_DUR even if the next beat
-    lands sooner."""
+    Stills are guaranteed at least `_min_dur(path)` and otherwise land on
+    their narration beat. Footage clips are rigid blocks at their natural
+    length: the slide right after a footage clip sits flush against its end
+    (no black gap), footage having priority over exact still timing."""
     starts = []
+    t = offset
+    prev_video = False
     for i, (path, frac) in enumerate(slides_with_pos):
-        prev_min = _min_dur(starts[-1][0]) if starts else MIN_SLIDE
-        start = (offset if i == 0
-                 else max(frac * total, starts[-1][1] + prev_min, offset))
+        if i == 0:
+            start = offset
+        elif prev_video:
+            start = t                      # flush against the footage's end
+        else:
+            start = max(frac * total, t)   # honour the narration beat
         starts.append((path, start))
-    # drop slides whose own minimum can't fit before the end
-    kept = []
-    for p, s in starts:
-        if s == 0.0 or s < total - _min_dur(p):
-            kept.append((p, s))
+        t = start + _slot_dur(path)
+        prev_video = _is_video(path)
+    # drop slides that no longer fit before the audio ends
+    kept = [(p, s) for i, (p, s) in enumerate(starts)
+            if i == 0 or s < total - 0.5]
     out = []
     for i, (path, start) in enumerate(kept):
         end = kept[i + 1][1] if i + 1 < len(kept) else total
@@ -151,8 +175,6 @@ def _render_footage(src: Path, duration: float, clip: Path):
            "-pix_fmt", "yuv420p", str(clip)]
     _run(cmd, CLIP_TIMEOUT, f"footage {src.name}")
 
-
-VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
 
 MAX_HOLD = 12.0   # past this, quietly refresh with the entity's alternate
                   # scraped image so no single still ever drags on screen
