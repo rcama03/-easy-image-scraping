@@ -1,0 +1,6 @@
+final.mp4 was split for GitHub's 100MB file limit.
+
+Download all 8 parts into one folder, then run:
+
+  Linux/Mac:  cat final.mp4.part* > final.mp4
+  Windows:    copy /b final.mp4.part00+final.mp4.part01+final.mp4.part02+final.mp4.part03+final.mp4.part04+final.mp4.part05+final.mp4.part06+final.mp4.part07 final.mp4
