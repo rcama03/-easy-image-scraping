@@ -43,10 +43,21 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   `<out>/contact_sheets/review_*.jpg` (via `write_contact_sheets`).
   ALWAYS send these to the user with SendUserFile for review before the
   final render, so they can flag irrelevant/repeated images by number.
-- User-provided animation clips: passed via `--intro a.mp4,b.mp4`, they
-  play back-to-back OVER the start of the narration (audio starts at 0,
-  clips are conformed to 1080p25, their own sound is dropped). Video
-  length stays locked to the audio length.
+- OPENING (user rule, 2026-07): do NOT use user-supplied animation
+  intro clips any more — they looked the same across episodes and hurt
+  retention. The user will not provide them. Instead OPEN every video
+  with found archival footage (the same public-domain B&W clips the
+  footage module sources). Pick the most suitable clip(s) for the very
+  first narration beats so the video starts on real footage, not a still.
+  The `--intro` path still exists in the code but is no longer used by
+  default; only pass `--intro` if the user explicitly hands over clips.
+- FOOTAGE COVERAGE (user rule): always source the MAXIMUM number of
+  suitable footage clips for the script — spread archival footage
+  throughout, not just the opening. If the script does not yield enough
+  distinct suitable clips, a clip may be REUSED once or twice, but only
+  with a large temporal gap between repeats of the same clip (never the
+  same footage twice close together). Prefer a fresh clip over a repeat
+  whenever one fits the beat.
 - Video length == audio length, joint audio+video fade-out at the end.
   No sudden voiceover cut.
 - Maximum quality, NEVER re-encode to shrink (user rule). Deliver the
