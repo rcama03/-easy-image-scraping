@@ -47,10 +47,14 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   intro clips any more — they looked the same across episodes and hurt
   retention. The user will not provide them. Instead OPEN every video
   with found archival footage (the same public-domain B&W clips the
-  footage module sources). Pick the most suitable clip(s) for the very
-  first narration beats so the video starts on real footage, not a still.
-  The `--intro` path still exists in the code but is no longer used by
-  default; only pass `--intro` if the user explicitly hands over clips.
+  footage module sources). For the very first beats pick the most
+  ACTION-/WAR-oriented footage available (explosions, gunfire, ships
+  under attack, combat manoeuvres) to HOOK the audience — the opening
+  must never be a calm establishing shot or a still. That same hook
+  clip MAY be reused later in the video wherever the script calls for
+  such a combat beat (subject to the gap rule below). The `--intro`
+  path still exists in the code but is no longer used by default; only
+  pass `--intro` if the user explicitly hands over clips.
 - FOOTAGE COVERAGE (user rule): always source the MAXIMUM number of
   suitable footage clips for the script — spread archival footage
   throughout, not just the opening. If the script does not yield enough
