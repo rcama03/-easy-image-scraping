@@ -170,7 +170,7 @@ def _render_footage(src: Path, duration: float, clip: Path):
     cmd = [FFMPEG, "-y", "-stream_loop", "-1", "-i", str(src),
            "-t", f"{duration:.3f}", "-an",
            "-vf", ("scale=1920:1080:force_original_aspect_ratio=decrease,"
-                   "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,fps=" + str(FPS)),
+                   "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=" + str(FPS)),
            "-c:v", "libx264", "-preset", "veryfast", "-crf", "14",
            "-pix_fmt", "yuv420p", str(clip)]
     _run(cmd, CLIP_TIMEOUT, f"footage {src.name}")

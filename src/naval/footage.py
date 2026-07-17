@@ -133,7 +133,7 @@ def make_clip(src: str, dst: Path, start: float, dur: float, bw: bool = True):
     the documentary stills). Letterbox-pads so nothing is cropped."""
     dst.parent.mkdir(parents=True, exist_ok=True)
     vf = ("scale=1920:1080:force_original_aspect_ratio=decrease,"
-          "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,fps=" + str(FPS))
+          "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=" + str(FPS))
     if bw:
         vf += ",hue=s=0"
     cmd = [FFMPEG, "-y", "-ss", f"{start:.2f}", "-i", src, "-t", f"{dur:.2f}",
