@@ -62,14 +62,22 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   with a large temporal gap between repeats of the same clip (never the
   same footage twice close together). Prefer a fresh clip over a repeat
   whenever one fits the beat.
+- NO ALTERNATES IN THE VIDEO (user rule, 2026-07): the video must contain
+  ONLY images shown to the user on the review contact sheets. NEVER inject
+  an entity's other scraped candidates ("alternates") to refresh a long
+  hold — those were never reviewed and have surfaced junk (Scream masks,
+  a "CERRADO" sign, stray emblems). The old `_hold_segments`/`_alternates`
+  refresh is disabled in `assemble.py`; do not re-enable it. `keep`>1 may
+  still download a small candidate pool for MANUAL replacement of a bad
+  main, but nothing beyond the chosen main ever enters the render.
 - REMOVALS / FILLING GAPS (user rule, 2026-07): when the user removes
   reviewed slides, the freed time must NOT become one long static hold on
   the neighbour. Instead fill a freed slot by REUSING an image that
   already appeared earlier in the video, placed at the removed slide's
-  slot — so holds stay short. Any single image may appear at most TWICE
-  in the whole video. Prefer a nearby earlier image so it still reads in
-  context. This also avoids the long-hold auto-refresh cycling into an
-  entity's stray/irrelevant alternate (e.g. a bad scrape).
+  slot — so holds stay short (cap a still around ~20s, then reuse an
+  earlier approved image). Any single image may appear at most TWICE in
+  the whole video. Prefer a nearby earlier image so it still reads in
+  context. Reserve a strong image (e.g. the memorial) for the closing shot.
 - Video length == audio length, joint audio+video fade-out at the end.
   No sudden voiceover cut.
 - Maximum quality, NEVER re-encode to shrink (user rule). Deliver the

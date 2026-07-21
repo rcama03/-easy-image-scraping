@@ -250,11 +250,15 @@ def assemble_video(slides_with_pos, audio: Path, out: Path,
             _render_footage(sp, duration, clip)
             clips.append(clip)
         else:
-            segments = _hold_segments([sp] + _alternates(sp), duration)
-            for si, (img, seg) in enumerate(segments):
-                clip = tmp / f"clip_{i:03d}_{si:02d}.mp4"
-                _render_clip(img, seg, clip, kenburns)
-                clips.append(clip)
+            # user rule (2026-07): NEVER inject an entity's scraped
+            # alternates into the video — they were not shown on the review
+            # contact sheets, so unreviewed/junk images (masks, stray emblems,
+            # signs) must never surface. A still holds on its approved image;
+            # long holds are broken upstream by REUSING an earlier approved
+            # image (see the sequence builder), not by cycling alternates.
+            clip = tmp / f"clip_{i:03d}_00.mp4"
+            _render_clip(sp, duration, clip, kenburns)
+            clips.append(clip)
         log(f"  clip {i + 1}/{len(timed)} ({duration:.1f}s) done")
 
     concat_file = tmp / "concat.txt"
