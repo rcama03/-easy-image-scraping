@@ -62,6 +62,14 @@ Turn the user's uploaded narration script (.txt/.docx) and voiceover audio
   with a large temporal gap between repeats of the same clip (never the
   same footage twice close together). Prefer a fresh clip over a repeat
   whenever one fits the beat.
+- REMOVALS / FILLING GAPS (user rule, 2026-07): when the user removes
+  reviewed slides, the freed time must NOT become one long static hold on
+  the neighbour. Instead fill a freed slot by REUSING an image that
+  already appeared earlier in the video, placed at the removed slide's
+  slot — so holds stay short. Any single image may appear at most TWICE
+  in the whole video. Prefer a nearby earlier image so it still reads in
+  context. This also avoids the long-hold auto-refresh cycling into an
+  entity's stray/irrelevant alternate (e.g. a bad scrape).
 - Video length == audio length, joint audio+video fade-out at the end.
   No sudden voiceover cut.
 - Maximum quality, NEVER re-encode to shrink (user rule). Deliver the
